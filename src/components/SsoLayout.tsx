@@ -34,6 +34,12 @@ import { useSsoAuth } from '../lib/ssoAuthStore';
 
 const NAV_GROUPS = [
   {
+    label: 'Administración & Accesos',
+    items: [
+      { to: '/usuarios', label: 'Usuarios & Invitaciones', icon: Users },
+    ],
+  },
+  {
     label: 'Resumen Ejecutivo',
     items: [
       { to: '/dashboard', label: 'Dashboard SSO', icon: BarChart3 },
@@ -144,32 +150,39 @@ export default function SsoLayout() {
         </button>
       </div>
 
-      <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-800 space-y-1.5">
-        {isSuperAdmin ? (
-          <div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              SUPER ADMIN MODE
-            </span>
-            <select
-              value={activeCompany.id}
-              onChange={(e) => setActiveCompanyId(e.target.value)}
-              className="mt-1.5 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none"
-            >
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.nombre}</option>
-              ))}
-            </select>
-          </div>
-        ) : (
-          <div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              {currentUser?.rolNombre}
-            </span>
-            <p className="text-xs font-semibold text-slate-200 mt-1 truncate">{state.empresaNombre}</p>
-          </div>
-        )}
-        <p className="text-[11px] text-slate-400">
-          {currentUser?.nombre} · Score SSO: <strong className="text-emerald-400">{kpis.ssoScore}%</strong>
+      <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
+            isSuperAdmin
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+          }`}>
+            {isSuperAdmin ? 'SUPER ADMIN MODE' : currentUser?.rolNombre || 'Usuario'}
+          </span>
+          <span className="text-[10px] font-bold text-slate-400">
+            Score: <strong className="text-emerald-400">{kpis.ssoScore}%</strong>
+          </span>
+        </div>
+
+        <div>
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+            Entorno / Empresa Activa:
+          </label>
+          <select
+            value={activeCompany.id}
+            onChange={(e) => setActiveCompanyId(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none focus:border-emerald-500"
+          >
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre} {c.modoInicial === 'blanco' ? '(Limpio)' : '(Demo)'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <p className="text-[11px] text-slate-300 truncate">
+          👤 {currentUser?.nombre}
         </p>
       </div>
 
@@ -272,18 +285,65 @@ export default function SsoLayout() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="hidden xl:block">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                Normativa Chilena Vigente · Ley 16.744 · DS 44 · DS 594 · DS 76 · Ley 21.643
-              </p>
+
+            {/* Selector Rápido de Entorno con Insignia */}
+            <div className="flex items-center gap-2">
+              {activeCompany.modoInicial === 'blanco' ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span>Entorno Limpio (Evaluación Experta)</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const demo = companies.find((c) => c.modoInicial === 'demo') || companies[0];
+                      setActiveCompanyId(demo.id);
+                    }}
+                    className="ml-1 text-[11px] underline font-black text-amber-800 dark:text-amber-200 hover:text-amber-900 cursor-pointer"
+                  >
+                    Ver Demo con Datos
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Demo con Datos (Minería &amp; Logística)</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const limpio = companies.find((c) => c.modoInicial === 'blanco') || companies[1];
+                      if (limpio) setActiveCompanyId(limpio.id);
+                    }}
+                    className="ml-1 text-[11px] underline font-black text-emerald-800 dark:text-emerald-200 hover:text-emerald-900 cursor-pointer"
+                  >
+                    Cambiar a Entorno Limpio
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              onClick={() => navigate('/portal')}
+              className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 text-xs font-black flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              title="Ver el Portal Comercial / Landing Page con mensajes de venta"
+            >
+              <span>🌐 Portal de Ventas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/usuarios')}
+              className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              title="Crear usuarios y enviar invitaciones a colaboradores o experta SSO"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>+ Invitar Usuario</span>
+            </button>
+            <button
+              type="button"
               onClick={() => navigate('/creador-documentos')}
-              className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+              className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <FilePlus2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Crear Documento</span>
@@ -291,16 +351,16 @@ export default function SsoLayout() {
             <button
               type="button"
               onClick={handleStartBlank}
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all"
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
               title="Limpiar datos demo y empezar desde cero"
             >
               <Eraser className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Empezar en Blanco</span>
+              <span className="hidden md:inline">Vaciar Datos</span>
             </button>
             <button
               type="button"
               onClick={handleResetDemo}
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all"
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
               title="Cargar datos demo de ejemplo"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -309,7 +369,7 @@ export default function SsoLayout() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
               title="Cambiar tema"
             >
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -317,7 +377,7 @@ export default function SsoLayout() {
             <button
               type="button"
               onClick={logout}
-              className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 transition-all"
+              className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
               title="Cerrar sesión"
             >
               <LogOut className="w-3.5 h-3.5" />

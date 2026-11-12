@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, User, Zap, AlertCircle, KeyRound } from 'lucide-react';
+import { ShieldCheck, Lock, User, Zap, AlertCircle, KeyRound, HardHat, Play, ArrowLeft } from 'lucide-react';
 import { useSsoAuth } from '../lib/ssoAuthStore';
 
-export default function LoginSsoPage() {
-  const { currentUser, login, loginSuperAdminDirect, completeFirstPasswordChange, logout } = useSsoAuth();
+export default function LoginSsoPage({ onBackToLanding }: { onBackToLanding?: () => void }) {
+  const {
+    currentUser,
+    login,
+    loginSuperAdminDirect,
+    loginExpertaDirect,
+    loginDemoDirect,
+    completeFirstPasswordChange,
+    logout,
+  } = useSsoAuth();
   const [identifier, setIdentifier] = useState(() => localStorage.getItem('gaval_sso_remember_id') || '10799367-3');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
@@ -105,8 +113,19 @@ export default function LoginSsoPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-4">
-      <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-4 relative">
+      {onBackToLanding && (
+        <button
+          type="button"
+          onClick={onBackToLanding}
+          className="absolute top-6 left-6 px-4 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Volver al Portal de Ventas</span>
+        </button>
+      )}
+
+      <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6 my-10">
         <div className="text-center space-y-2">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30">
             <ShieldCheck className="w-8 h-8" />
@@ -137,7 +156,7 @@ export default function LoginSsoPage() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="Ej: 10799367-3 o correo@empresa.cl"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm outline-none focus:border-emerald-500"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm outline-none focus:border-emerald-500 text-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
@@ -153,7 +172,7 @@ export default function LoginSsoPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm outline-none focus:border-emerald-500"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm outline-none focus:border-emerald-500 text-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
@@ -170,27 +189,47 @@ export default function LoginSsoPage() {
 
           <button
             type="submit"
-            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black shadow-lg shadow-emerald-600/20 transition-all"
+            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
           >
             Iniciar Sesión
           </button>
         </form>
 
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+        {/* ACCESOS RÁPIDOS 1-CLIC */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 text-center">
+            Accesos Rápidos de Demostración y Prueba
+          </p>
+
+          <button
+            type="button"
+            onClick={loginExpertaDirect}
+            className="w-full py-2.5 px-3 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-800/60 text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <HardHat className="w-4 h-4 text-indigo-400" />
+            <span>Acceso Experta SSO (Entorno Limpio)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={loginDemoDirect}
+            className="w-full py-2.5 px-3 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/60 text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+            <span>Acceso Demo Comercial (Con Datos)</span>
+          </button>
+
           <button
             type="button"
             onClick={loginSuperAdminDirect}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-amber-400 text-xs font-black flex items-center justify-center gap-2 transition-all"
+            className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-amber-400 text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
             <Zap className="w-4 h-4" />
-            Ingreso Directo Súper Admin (Gabriel Avalos)
+            <span>Ingreso Directo Gabriel Avalos (Súper Admin)</span>
           </button>
-
-          <p className="text-[11px] text-center text-slate-400">
-            Acceso rápido Demo Prospecto: <code className="font-bold text-slate-600 dark:text-slate-300">demo@gaval.cl</code> / <code className="font-bold text-slate-600 dark:text-slate-300">demo123</code>
-          </p>
         </div>
       </div>
     </div>
   );
 }
+
