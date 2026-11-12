@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useSsoAuth } from './ssoAuthStore';
 
 export interface TrabajadorSSO {
   id: string;
@@ -320,24 +321,57 @@ interface SsoContextValue {
   addEmergencia: (item: Omit<EmergenciaSimulacroSSO, 'id'>) => void;
   logReporte: (titulo: string, tipo: string, formato: 'PDF' | 'Excel' | 'Word') => void;
   resetDemo: () => void;
+  startBlankWorkspace: () => void;
 }
 
 const SsoContext = createContext<SsoContextValue | null>(null);
 
+const buildBlankState = (empresaNombre: string, empresaRut: string): SsoStoreState => ({
+  empresaNombre,
+  empresaRut,
+  hhtMensual: 10000,
+  trabajadores: [],
+  contratistas: [],
+  documentos: [],
+  normas: INITIAL_STATE.normas.map((n) => ({ ...n, estado: 'Observación' })),
+  riesgos: [],
+  incidentes: [],
+  hallazgos: [],
+  epps: [],
+  extintores: [],
+  equiposEmergencia: [],
+  charlas: [],
+  inspecciones: [],
+  emergencias: [],
+  reportes: [],
+});
+
 export const SsoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<SsoStoreState>(() => {
+  const { activeCompany } = useSsoAuth();
+  const wsKey = `${STORAGE_KEY}_${activeCompany.id}`;
+
+  const getInitialForCompany = (): SsoStoreState => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(wsKey);
       if (saved) return JSON.parse(saved);
     } catch {}
-    return INITIAL_STATE;
-  });
+    if (activeCompany.modoInicial === 'blanco') {
+      return buildBlankState(activeCompany.nombre, activeCompany.rut);
+    }
+    return { ...INITIAL_STATE, empresaNombre: activeCompany.nombre, empresaRut: activeCompany.rut };
+  };
+
+  const [state, setState] = useState<SsoStoreState>(getInitialForCompany);
+
+  useEffect(() => {
+    setState(getInitialForCompany());
+  }, [activeCompany.id]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(wsKey, JSON.stringify(state));
     } catch {}
-  }, [state]);
+  }, [state, wsKey]);
 
   const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -437,8 +471,12 @@ export const SsoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ],
       })),
     resetDemo: () => {
-      localStorage.removeItem(STORAGE_KEY);
-      setState(INITIAL_STATE);
+      localStorage.removeItem(wsKey);
+      setState({ ...INITIAL_STATE, empresaNombre: activeCompany.nombre, empresaRut: activeCompany.rut });
+    },
+    startBlankWorkspace: () => {
+      localStorage.removeItem(wsKey);
+      setState(buildBlankState(activeCompany.nombre, activeCompany.rut));
     },
   };
 

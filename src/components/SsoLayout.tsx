@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
   BarChart3,
@@ -24,9 +24,13 @@ import {
   Moon,
   Menu,
   X,
+  LogOut,
+  Eraser,
+  Activity,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useSso } from '../lib/ssoStore';
+import { useSsoAuth } from '../lib/ssoAuthStore';
 
 const NAV_GROUPS = [
   {
@@ -74,10 +78,16 @@ const NAV_GROUPS = [
 ];
 
 export default function SsoLayout() {
-  const { state, kpis, resetDemo } = useSso();
+  const { state, kpis, resetDemo, startBlankWorkspace } = useSso();
+  const { currentUser, isSuperAdmin, companies, activeCompany, setActiveCompanyId, logout, logActivity } = useSsoAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [dark, setDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    logActivity(location.pathname, 'Visita de Módulo');
+  }, [location.pathname]);
 
   const toggleTheme = () => {
     const next = !dark;
@@ -87,16 +97,32 @@ export default function SsoLayout() {
 
   const handleResetDemo = () => {
     Swal.fire({
-      title: '¿Restablecer Maqueta Demo?',
-      text: 'Se restaurarán los datos iniciales de demostración.',
+      title: '¿Cargar / Restablecer Datos Demo?',
+      text: 'Se cargarán los registros ficticios de demostración en tu entorno actual.',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: 'Sí, restablecer',
+      confirmButtonText: 'Sí, cargar Demo',
       cancelButtonText: 'Cancelar',
     }).then((res) => {
       if (res.isConfirmed) {
         resetDemo();
-        Swal.fire({ icon: 'success', title: 'Demo restablecida', timer: 1400, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Datos Demo cargados', timer: 1300, showConfirmButton: false });
+      }
+    });
+  };
+
+  const handleStartBlank = () => {
+    Swal.fire({
+      title: '¿Empezar en Blanco (Desde Cero)?',
+      text: 'Se limpiarán los datos demostrativos para que puedas ingresar tus propios trabajadores, documentos y empresas desde cero.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, dejar en blanco',
+      cancelButtonText: 'Cancelar',
+    }).then((res) => {
+      if (res.isConfirmed) {
+        startBlankWorkspace();
+        Swal.fire({ icon: 'success', title: 'Entorno en blanco listo', timer: 1300, showConfirmButton: false });
       }
     });
   };
@@ -118,15 +144,74 @@ export default function SsoLayout() {
         </button>
       </div>
 
-      <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-800">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-          Maqueta Comercial Chile
-        </span>
-        <p className="text-xs font-semibold text-slate-200 mt-1 truncate">{state.empresaNombre}</p>
-        <p className="text-[11px] text-slate-400">Score SSO: <strong className="text-emerald-400">{kpis.ssoScore}%</strong></p>
+      <div className="px-4 py-3 bg-slate-800/50 border-b border-slate-800 space-y-1.5">
+        {isSuperAdmin ? (
+          <div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              SUPER ADMIN MODE
+            </span>
+            <select
+              value={activeCompany.id}
+              onChange={(e) => setActiveCompanyId(e.target.value)}
+              className="mt-1.5 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none"
+            >
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              {currentUser?.rolNombre}
+            </span>
+            <p className="text-xs font-semibold text-slate-200 mt-1 truncate">{state.empresaNombre}</p>
+          </div>
+        )}
+        <p className="text-[11px] text-slate-400">
+          {currentUser?.nombre} · Score SSO: <strong className="text-emerald-400">{kpis.ssoScore}%</strong>
+        </p>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-5">
+        {isSuperAdmin && (
+          <div>
+            <p className="px-3 mb-1.5 text-[10px] font-black uppercase tracking-widest text-amber-400">
+              Super Administrador
+            </p>
+            <div className="space-y-1">
+              <NavLink
+                to="/super-admin"
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    isActive
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'text-amber-200 hover:bg-slate-800 hover:text-white'
+                  }`
+                }
+              >
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>Empresas, Usuarios &amp; Invitar</span>
+              </NavLink>
+              <NavLink
+                to="/super-admin/actividad"
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    isActive
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'text-amber-200 hover:bg-slate-800 hover:text-white'
+                  }`
+                }
+              >
+                <Activity className="w-4 h-4 shrink-0" />
+                <span>Log de Actividad</span>
+              </NavLink>
+            </div>
+          </div>
+        )}
+
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
             <p className="px-3 mb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -162,14 +247,12 @@ export default function SsoLayout() {
 
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {/* Desktop Sidebar */}
       <aside className="hidden lg:block shrink-0">
         <div className="sticky top-0 h-screen">
           <SidebarContent />
         </div>
       </aside>
 
-      {/* Mobile Drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
@@ -179,7 +262,6 @@ export default function SsoLayout() {
         </div>
       )}
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -190,30 +272,39 @@ export default function SsoLayout() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="hidden sm:block">
+            <div className="hidden xl:block">
               <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                 Normativa Chilena Vigente · Ley 16.744 · DS 44 · DS 594 · DS 76 · Ley 21.643
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => navigate('/creador-documentos')}
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+              className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
             >
               <FilePlus2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Crear Documento Legal</span>
+              <span className="hidden sm:inline">Crear Documento</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleStartBlank}
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all"
+              title="Limpiar datos demo y empezar desde cero"
+            >
+              <Eraser className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Empezar en Blanco</span>
             </button>
             <button
               type="button"
               onClick={handleResetDemo}
               className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all"
-              title="Restablecer datos demo"
+              title="Cargar datos demo de ejemplo"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Restablecer Demo</span>
+              <span className="hidden md:inline">Cargar Demo</span>
             </button>
             <button
               type="button"
@@ -222,6 +313,15 @@ export default function SsoLayout() {
               title="Cambiar tema"
             >
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={logout}
+              className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 transition-all"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
         </header>
